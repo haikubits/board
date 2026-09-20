@@ -1428,12 +1428,23 @@
             const statusIndicator = document.getElementById('driveStatusIndicator');
             const subtitle = document.getElementById('driveConnectionSubtitle');
             const lastSyncLabel = document.getElementById('lastDriveSyncLabel');
+            const folderLink = document.getElementById('driveFolderLink');
 
             if (isConnected) {
                 unconnectedBlock.classList.add('hidden');
                 connectedBlock.classList.remove('hidden');
                 statusIndicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-apple-green"></span><span class="text-apple-green font-semibold">Connected</span>';
                 subtitle.textContent = `Folder: ${DRIVE_FOLDER_NAME}`;
+
+                if (folderLink) {
+                    if (googleDrive.folderId) {
+                        folderLink.href = `https://drive.google.com/drive/folders/${googleDrive.folderId}`;
+                        folderLink.classList.remove('opacity-50', 'pointer-events-none');
+                    } else {
+                        folderLink.href = '#';
+                        folderLink.classList.add('opacity-50', 'pointer-events-none');
+                    }
+                }
 
                 if (googleDrive.lastSynced) {
                     const timeAgo = new Date(googleDrive.lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
