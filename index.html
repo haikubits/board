@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Board Pro</title>
+    <title>Kanban Studio</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -342,7 +342,7 @@
                                 <label class="text-[10px] font-semibold uppercase tracking-wider text-apple-gray-500">Google OAuth Client ID</label>
                                 <button onclick="toggleClientIdHelp()" class="text-[10px] text-apple-blue hover:underline">Setup Help</button>
                             </div>
-                            <input id="googleClientIdInput" type="text" placeholder="123456789-xxxx.apps.googleusercontent.com"
+                            <input id="googleClientIdInput" type="text" value="263708018957-ompjolkl8tpilupcuccq2oj9nd3bgpas.apps.googleusercontent.com" placeholder="123456789-xxxx.apps.googleusercontent.com"
                                    class="w-full bg-white dark:bg-[#3A3A3C] text-[11px] px-3 py-1.5 rounded-xl border border-black/[0.06] dark:border-white/[0.1] outline-none focus:ring-2 focus:ring-apple-blue">
                             <p id="clientIdHelpText" class="hidden text-[10px] text-apple-gray-500 leading-relaxed pt-1">
                                 Create a free <strong>Web Application</strong> OAuth Client ID in <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-apple-blue underline">Google Cloud Console</a>. Enable the <strong>Google Drive API</strong>, and add this site's URL (or <code class="bg-black/[0.05] dark:bg-white/[0.1] px-1 rounded">http://localhost</code>) to <em>Authorized JavaScript Origins</em>.
@@ -617,7 +617,16 @@
         /* ==========================================================================
            KANBAN PERSISTENCE & GOOGLE DRIVE CLOUD STATE
            ========================================================================== */
-        const STORAGE_KEY = 'boardcraft_apple_full_state_v3';
+        // Prior keys to inspect in priority order to prevent any data loss across versions
+        const CANDIDATE_STORAGE_KEYS = [
+            'boardcraft_apple_full_state_v3',
+            'apple_kanban_boards_v2',
+            'apple_kanban_boards_v1',
+            'apple_kanban_boards',
+            'kanban_boards',
+            'apple_kanban_state'
+        ];
+        const PRIMARY_STORAGE_KEY = 'boardcraft_apple_full_state_v3';
         const GOOGLE_CONFIG_KEY = 'boardcraft_google_config_v3';
         const DRIVE_FILENAME = 'apple_kanban_boards.json';
 
@@ -824,19 +833,73 @@
         }
 
         function loadPersistedState() {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
+            let foundData = null;
+            let sourceKeyUsed = null;
+
+            // Exhaustively check all legacy and current storage keys
+            for (const key of CANDIDATE_STORAGE_KEYS) {
                 try {
-                    const parsed = JSON.parse(raw);
-                    state.boards = parsed.boards && parsed.boards.length > 0 ? parsed.boards : DEFAULT_BOARDS;
-                    state.activeBoardId = parsed.activeBoardId || state.boards[0].id;
-                    state.darkMode = parsed.darkMode !== undefined ? parsed.darkMode : false;
-                } catch (e) {
-                    console.error('LocalStorage restoration error:', e);
-                    state.boards = JSON.parse(JSON.stringify(DEFAULT_BOARDS));
-                    state.activeBoardId = state.boards[0].id;
+                    const raw = localStorage.getItem(key);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        // Case A: State object containing boards array
+                        if (parsed && Array.isArray(parsed.boards) && parsed.boards.length > 0) {
+                            foundData = parsed;
+                            sourceKeyUsed = key;
+                            break;
+                        }
+                        // Case B: Direct boards array stored under key
+                        else if (Array.isArray(parsed) && parsed.length > 0) {
+                            foundData = {
+                                boards: parsed,
+                                activeBoardId: parsed[0]?.id || null,
+                                darkMode: false
+                            };
+                            sourceKeyUsed = key;
+                            break;
+                        }
+                        // Case C: Nested state property
+                        else if (parsed && parsed.state && Array.isArray(parsed.state.boards) && parsed.state.boards.length > 0) {
+                            foundData = parsed.state;
+                            sourceKeyUsed = key;
+                            break;
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`Could not parse data from key "${key}":`, err);
+                }
+            }
+
+            if (foundData && foundData.boards && foundData.boards.length > 0) {
+                state.boards = foundData.boards;
+                state.activeBoardId = foundData.activeBoardId || state.boards[0].id;
+                state.darkMode = foundData.darkMode !== undefined 
+                    ? foundData.darkMode 
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+                // Sanitize board fields
+                state.boards.forEach((b, idx) => {
+                    if (!b.id) b.id = 'board-' + idx;
+                    if (!b.columns) b.columns = [];
+                    if (!b.history) b.history = [];
+                    if (!b.accentColor) b.accentColor = '#0071E3';
+                });
+
+                // Ensure primary storage key is refreshed with migrated data
+                try {
+                    localStorage.setItem(PRIMARY_STORAGE_KEY, JSON.stringify({
+                        boards: state.boards,
+                        activeBoardId: state.activeBoardId,
+                        darkMode: state.darkMode
+                    }));
+                    if (sourceKeyUsed && sourceKeyUsed !== PRIMARY_STORAGE_KEY) {
+                        console.info(`Successfully migrated existing board data from legacy key "${sourceKeyUsed}".`);
+                    }
+                } catch (writeErr) {
+                    console.error('LocalStorage write error during migration:', writeErr);
                 }
             } else {
+                // Only seed defaults if absolutely no prior local board data exists in any key
                 state.boards = JSON.parse(JSON.stringify(DEFAULT_BOARDS));
                 state.activeBoardId = state.boards[0].id;
                 state.darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -850,18 +913,23 @@
 
         function persistState(triggerCloudAutoSave = true) {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                const payload = JSON.stringify({
                     boards: state.boards,
                     activeBoardId: state.activeBoardId,
                     darkMode: state.darkMode
-                }));
+                });
+                // Write synchronously to primary key
+                localStorage.setItem(PRIMARY_STORAGE_KEY, payload);
+                // Also mirror to legacy aliases so older scripts/tabs never lose tasks
+                localStorage.setItem('apple_kanban_boards', payload);
+                localStorage.setItem('apple_kanban_boards_v2', payload);
             } catch (err) {
                 console.error('Failed saving to LocalStorage', err);
                 showToast('Storage write quota exceeded', 'error');
             }
             updateUndoButtonState();
 
-            // Trigger Google Drive auto-save if linked and turned ON
+            // Trigger Google Drive auto-save if linked and auto-save is enabled
             if (triggerCloudAutoSave && googleDrive.accessToken && googleDrive.autoSave) {
                 queueCloudAutoSave();
             }
