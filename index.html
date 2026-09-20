@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Identity Services (GIS) Client Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -71,7 +73,7 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* macOS-style subtle scrollbar */
+        /* macOS subtle scrollbar */
         ::-webkit-scrollbar {
             width: 7px;
             height: 7px;
@@ -87,7 +89,7 @@
             background: rgba(142, 142, 147, 0.6);
         }
 
-        /* Apple frosted glass material */
+        /* Apple frosted glass */
         .apple-frosted {
             backdrop-filter: blur(28px) saturate(190%);
             -webkit-backdrop-filter: blur(28px) saturate(190%);
@@ -140,6 +142,57 @@
             from { opacity: 1; transform: translateY(0) scale(1); }
             to { opacity: 0; transform: translateY(10px) scale(0.95); }
         }
+
+        /* Cloud spin rotation for syncing animation */
+        @keyframes subtleSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spin-cloud {
+            animation: subtleSpin 1.2s linear infinite;
+        }
+
+        /* iOS-style toggle switch */
+        .ios-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .ios-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .ios-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #E5E5EA;
+            transition: .24s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 34px;
+        }
+        .dark .ios-slider {
+            background-color: #3A3A3C;
+        }
+        .ios-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .24s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .ios-slider {
+            background-color: #34C759;
+        }
+        input:checked + .ios-slider:before {
+            transform: translateX(20px);
+        }
     </style>
 </head>
 <body class="h-full bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] flex flex-col font-sans overflow-hidden select-none transition-colors duration-200">
@@ -159,11 +212,11 @@
             <div class="relative">
                 <button id="boardPickerBtn" onclick="toggleBoardDropdown()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition text-[14px] font-medium">
                     <span id="currentBoardDot" class="w-2.5 h-2.5 rounded-full bg-apple-blue shrink-0"></span>
-                    <span id="currentBoardTitle" class="max-w-[150px] md:max-w-[220px] truncate font-medium">Product Launch</span>
+                    <span id="currentBoardTitle" class="max-w-[140px] md:max-w-[200px] truncate font-medium">VisionOS Spatial</span>
                     <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-apple-gray-500"></i>
                 </button>
 
-                <!-- Board Switcher & Creator Dropdown -->
+                <!-- Board Switcher Dropdown -->
                 <div id="boardDropdown" class="hidden absolute top-full left-0 mt-2 w-72 bg-white/95 dark:bg-[#1C1C1E]/95 apple-frosted rounded-2xl shadow-apple-sheet border border-black/[0.08] dark:border-white/[0.1] py-2 z-50">
                     <div class="px-3 pb-2 pt-1 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between">
                         <span class="text-[11px] font-semibold tracking-wider uppercase text-apple-gray-500">Boards</span>
@@ -187,7 +240,7 @@
         </div>
 
         <!-- Center: Instant Search / Filter Bar -->
-        <div class="hidden md:flex items-center w-72 lg:w-96 relative">
+        <div class="hidden md:flex items-center w-64 lg:w-80 relative">
             <i data-lucide="search" class="w-3.5 h-3.5 text-apple-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
             <input id="searchInput" type="text" placeholder="Search tasks, tags, priorities..." 
                    oninput="handleSearch(this.value)"
@@ -197,8 +250,14 @@
             </button>
         </div>
 
-        <!-- Right: Actions, History Side Drawer, Quick Undo & Settings -->
+        <!-- Right: Cloud Save, Undo, History, Settings & Profile Menu -->
         <div class="flex items-center gap-2">
+            <!-- Dynamic Google Drive Manual Save Button (Visible when Drive is connected) -->
+            <button id="driveHeaderSaveBtn" onclick="manualSaveToDrive()" class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue border border-apple-blue/20 transition shadow-sm" title="Save changes directly to Google Drive">
+                <i id="driveSaveCloudIcon" data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
+                <span id="driveHeaderSaveLabel">Save to Drive</span>
+            </button>
+
             <!-- Live Undo Quick Button -->
             <button id="undoBtn" onclick="undoLastAction()" disabled title="Undo last action (Cmd/Ctrl+Z)"
                     class="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-full bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.14] disabled:opacity-30 disabled:cursor-not-allowed transition text-[#1D1D1F] dark:text-[#F5F5F7]">
@@ -207,35 +266,141 @@
             </button>
 
             <!-- Board History Button -->
-            <button onclick="toggleHistoryDrawer(true)" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.14] transition text-[#1D1D1F] dark:text-[#F5F5F7]" title="View Board Change History">
+            <button onclick="toggleHistoryDrawer(true)" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.14] transition text-[#1D1D1F] dark:text-[#F5F5F7]" title="View Board Activity Log">
                 <i data-lucide="history" class="w-3.5 h-3.5 text-apple-blue"></i>
                 <span class="hidden sm:inline">History</span>
                 <span id="historyCounterBadge" class="text-[10px] px-1.5 py-0.2 rounded-full bg-apple-blue text-white font-semibold">0</span>
             </button>
 
             <!-- Add Column Direct Button -->
-            <button onclick="promptAddColumn()" class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.14] transition text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <button onclick="promptAddColumn()" class="hidden xl:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.14] transition text-[#1D1D1F] dark:text-[#F5F5F7]">
                 <i data-lucide="columns" class="w-3.5 h-3.5 text-apple-purple"></i>
                 <span>Add Column</span>
             </button>
 
-            <!-- Data Export/Import Overflow Button -->
+            <!-- Data Backup Modal Button -->
             <button onclick="openDataModal()" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.1] text-apple-gray-600 dark:text-apple-gray-300 transition" title="Data Backup & Restore">
                 <i data-lucide="hard-drive-download" class="w-4 h-4"></i>
             </button>
 
             <!-- Dark/Light Theme Toggle -->
-            <button onclick="toggleDarkMode()" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.1] text-apple-gray-600 dark:text-apple-gray-300 transition" title="Toggle appearance">
+            <button onclick="toggleDarkMode()" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.1] text-apple-gray-600 dark:text-apple-gray-300 transition" title="Toggle Appearance">
                 <i data-lucide="moon" class="w-4 h-4 hidden dark:inline-block"></i>
                 <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
             </button>
+
+            <!-- Profile / Account Trigger (Google Drive Integration Portal) -->
+            <div class="relative ml-1">
+                <button id="profileBtn" onclick="toggleProfilePopover()" class="w-8 h-8 rounded-full flex items-center justify-center bg-black/[0.05] dark:bg-white/[0.1] hover:ring-2 hover:ring-apple-blue transition overflow-hidden relative shadow-sm" title="Account & Google Drive Sync">
+                    <img id="profileAvatarImg" src="" alt="" class="w-full h-full object-cover hidden">
+                    <span id="profileAvatarFallback" class="text-xs font-semibold text-apple-gray-700 dark:text-apple-gray-300">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </span>
+                    <!-- Green Cloud Connected Dot Indicator -->
+                    <span id="profileCloudDot" class="hidden absolute bottom-0 right-0 w-2.5 h-2.5 bg-apple-green rounded-full border-2 border-white dark:border-[#1C1C1E]"></span>
+                </button>
+
+                <!-- Apple-style Profile & Google Drive Popover -->
+                <div id="profilePopover" class="hidden absolute top-full right-0 mt-2.5 w-84 sm:w-96 bg-white/95 dark:bg-[#1C1C1E]/95 apple-frosted rounded-3xl shadow-apple-sheet border border-black/[0.08] dark:border-white/[0.1] p-4 z-50 text-xs">
+                    <!-- User Info Header -->
+                    <div class="flex items-center gap-3 pb-3.5 border-b border-black/[0.06] dark:border-white/[0.08]">
+                        <div id="popoverAvatarCircle" class="w-11 h-11 rounded-full bg-apple-blue/10 flex items-center justify-center text-apple-blue font-bold text-sm overflow-hidden shrink-0">
+                            <img id="popoverAvatarImg" src="" alt="" class="w-full h-full object-cover hidden">
+                            <i id="popoverAvatarIcon" data-lucide="user" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5">
+                                <h4 id="popoverUserName" class="font-semibold text-sm truncate text-[#1D1D1F] dark:text-[#F5F5F7]">Guest User</h4>
+                                <span id="popoverAuthBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-apple-gray-200 dark:bg-apple-gray-700 text-apple-gray-600 dark:text-apple-gray-300">Local Only</span>
+                            </div>
+                            <p id="popoverUserEmail" class="text-apple-gray-500 truncate text-[11px]">Storage kept in browser</p>
+                        </div>
+                    </div>
+
+                    <!-- Google Drive Link Card Section -->
+                    <div class="mt-3.5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-lg bg-[#4285F4]/10 text-[#4285F4] flex items-center justify-center">
+                                    <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+                                </div>
+                                <div>
+                                    <span class="font-semibold text-[13px] block leading-tight">Google Drive</span>
+                                    <span id="driveConnectionSubtitle" class="text-[10px] text-apple-gray-500">Not linked</span>
+                                </div>
+                            </div>
+                            <!-- Connection Status Pill -->
+                            <div id="driveStatusIndicator" class="flex items-center gap-1 text-[11px] font-medium text-apple-gray-500">
+                                <span class="w-2 h-2 rounded-full bg-apple-gray-400"></span>
+                                <span>Disconnected</span>
+                            </div>
+                        </div>
+
+                        <!-- Client ID Setup Accordion -->
+                        <div class="bg-[#F5F5F7] dark:bg-[#2C2C2E]/60 p-3 rounded-2xl border border-black/[0.04] dark:border-white/[0.06] space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[10px] font-semibold uppercase tracking-wider text-apple-gray-500">Google OAuth Client ID</label>
+                                <button onclick="toggleClientIdHelp()" class="text-[10px] text-apple-blue hover:underline">Setup Help</button>
+                            </div>
+                            <input id="googleClientIdInput" type="text" placeholder="123456789-xxxx.apps.googleusercontent.com"
+                                   class="w-full bg-white dark:bg-[#3A3A3C] text-[11px] px-3 py-1.5 rounded-xl border border-black/[0.06] dark:border-white/[0.1] outline-none focus:ring-2 focus:ring-apple-blue">
+                            <p id="clientIdHelpText" class="hidden text-[10px] text-apple-gray-500 leading-relaxed pt-1">
+                                Create a free <strong>Web Application</strong> OAuth Client ID in <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-apple-blue underline">Google Cloud Console</a>. Enable the <strong>Google Drive API</strong>, and add this site's URL (or <code class="bg-black/[0.05] dark:bg-white/[0.1] px-1 rounded">http://localhost</code>) to <em>Authorized JavaScript Origins</em>.
+                            </p>
+                        </div>
+
+                        <!-- Connect / Disconnect Buttons -->
+                        <div id="driveUnconnectedBlock" class="space-y-2">
+                            <button onclick="connectGoogleDrive()" class="w-full py-2 px-3 rounded-2xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition">
+                                <i data-lucide="link" class="w-3.5 h-3.5"></i> Connect Google Drive
+                            </button>
+                            <p class="text-[10px] text-center text-apple-gray-500">Pure client-side sync. Syncs <code class="text-apple-gray-600 dark:text-apple-gray-300">apple_kanban_boards.json</code>.</p>
+                        </div>
+
+                        <!-- Connected Controls (Auto-Save & Manual Sync) -->
+                        <div id="driveConnectedBlock" class="hidden space-y-3 pt-1">
+                            <!-- Auto Save Toggle -->
+                            <div class="flex items-center justify-between bg-[#F5F5F7] dark:bg-[#2C2C2E]/60 p-3 rounded-2xl border border-black/[0.04] dark:border-white/[0.06]">
+                                <div>
+                                    <div class="font-semibold text-xs text-[#1D1D1F] dark:text-[#F5F5F7]">Auto-Save to Cloud</div>
+                                    <div class="text-[10px] text-apple-gray-500">Syncs immediately on every change</div>
+                                </div>
+                                <label class="ios-switch shrink-0">
+                                    <input id="autoSaveToggle" type="checkbox" onchange="toggleAutoSave(this.checked)">
+                                    <span class="ios-slider"></span>
+                                </label>
+                            </div>
+
+                            <!-- Manual Sync Actions -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="manualSaveToDrive()" class="py-2 px-3 rounded-xl bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue font-semibold text-xs flex items-center justify-center gap-1.5 transition">
+                                    <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
+                                    <span>Push to Drive</span>
+                                </button>
+                                <button onclick="manualLoadFromDrive()" class="py-2 px-3 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.1] text-xs font-medium flex items-center justify-center gap-1.5 transition">
+                                    <i data-lucide="cloud-download" class="w-3.5 h-3.5"></i>
+                                    <span>Pull from Drive</span>
+                                </button>
+                            </div>
+
+                            <!-- Last Sync Log & Disconnect -->
+                            <div class="flex items-center justify-between pt-2 border-t border-black/[0.06] dark:border-white/[0.08] text-[11px]">
+                                <span id="lastDriveSyncLabel" class="text-apple-gray-400">Never synced</span>
+                                <button onclick="disconnectGoogleDrive()" class="text-apple-red hover:underline font-medium flex items-center gap-1">
+                                    <i data-lucide="log-out" class="w-3 h-3"></i> Unlink
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
     <!-- Board Scroll Canvas Area -->
     <main class="flex-1 overflow-x-auto overflow-y-hidden p-4 sm:p-6 relative">
         <div id="boardColumnsContainer" class="flex items-start gap-4 sm:gap-5 h-full pb-3 w-max">
-            <!-- Dynamic Columns Injected by JavaScript -->
+            <!-- Columns Injected dynamically -->
         </div>
     </main>
 
@@ -269,7 +434,7 @@
                            class="w-full text-xl font-bold bg-transparent border-b border-transparent focus:border-apple-blue outline-none py-1 transition" />
                 </div>
 
-                <!-- Attributes Box (Priority, Due Date, Labels) -->
+                <!-- Attributes Box (Priority, Due Date, Tags) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#F5F5F7] dark:bg-[#2C2C2E]/60 p-4 rounded-2xl border border-black/[0.04] dark:border-white/[0.06]">
                     <!-- Priority -->
                     <div>
@@ -292,21 +457,19 @@
                     <!-- Tags -->
                     <div class="sm:col-span-2">
                         <label class="block text-[11px] font-semibold uppercase tracking-wider text-apple-gray-500 mb-1.5">Tags (Comma-separated)</label>
-                        <input id="modalCardTags" type="text" placeholder="Engineering, Design, Marketing..." 
+                        <input id="modalCardTags" type="text" placeholder="Engineering, Design, Cloud..." 
                                class="w-full bg-white dark:bg-[#3A3A3C] border border-black/[0.06] dark:border-white/[0.1] rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-apple-blue outline-none">
                     </div>
                 </div>
 
-                <!-- Notes / Description Area -->
+                <!-- Notes / Description -->
                 <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <label class="text-[11px] font-semibold uppercase tracking-wider text-apple-gray-500">Notes / Details</label>
-                    </div>
-                    <textarea id="modalCardDesc" rows="4" placeholder="Add descriptions, reference links, specifications..." 
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-apple-gray-500 mb-1.5">Notes / Description</label>
+                    <textarea id="modalCardDesc" rows="4" placeholder="Add specs, URLs, deliverables..." 
                               class="w-full bg-[#F5F5F7] dark:bg-[#2C2C2E]/60 border border-transparent focus:border-apple-blue rounded-2xl p-3.5 text-[13px] outline-none transition resize-none"></textarea>
                 </div>
 
-                <!-- Checklist Subtasks -->
+                <!-- Subtask Checklist -->
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
@@ -315,28 +478,26 @@
                         </div>
                     </div>
 
-                    <!-- Checklist Progress Bar -->
                     <div class="w-full h-1.5 bg-[#E5E5EA] dark:bg-[#3A3A3C] rounded-full overflow-hidden mb-3">
                         <div id="checklistProgressBar" class="h-full bg-apple-green transition-all duration-300" style="width: 0%"></div>
                     </div>
 
                     <div id="modalChecklistItems" class="space-y-2 mb-3">
-                        <!-- Dynamic Checklist rows -->
+                        <!-- Dynamic Checklist Items -->
                     </div>
 
-                    <!-- New Checklist Input -->
                     <div class="flex gap-2">
-                        <input id="newChecklistInput" type="text" placeholder="Add a checklist item..." 
+                        <input id="newChecklistInput" type="text" placeholder="Add checklist item..." 
                                onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}"
                                class="flex-1 bg-[#F5F5F7] dark:bg-[#2C2C2E]/60 border-none rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-apple-blue">
-                        <button onclick="addChecklistItem()" class="px-3.5 py-2 rounded-xl bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] text-xs font-medium transition">Add</button>
+                        <button onclick="addChecklistItem()" class="px-3.5 py-2 rounded-xl bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] text-xs font-medium transition">Add</button>
                     </div>
                 </div>
             </div>
 
             <!-- Modal Footer -->
             <div class="px-6 py-4 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-end gap-3 bg-[#FBFBFD] dark:bg-[#181819]">
-                <button onclick="closeCardModal()" class="px-4 py-2 rounded-full text-xs font-medium text-apple-gray-600 dark:text-apple-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition">Cancel</button>
+                <button onclick="closeCardModal()" class="px-4 py-2 rounded-full text-xs font-medium text-apple-gray-600 dark:text-apple-gray-300 hover:bg-black/[0.05] transition">Cancel</button>
                 <button onclick="saveCardDetails()" class="px-5 py-2 rounded-full text-xs font-semibold bg-apple-blue hover:bg-apple-blue-hover text-white shadow-sm transition">Save Changes</button>
             </div>
         </div>
@@ -362,16 +523,15 @@
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-                <button onclick="closeBoardModal()" class="px-4 py-2 rounded-full text-xs font-medium hover:bg-black/[0.05] dark:hover:bg-white/[0.08]">Cancel</button>
+                <button onclick="closeBoardModal()" class="px-4 py-2 rounded-full text-xs font-medium hover:bg-black/[0.05]">Cancel</button>
                 <button id="boardModalSaveBtn" onclick="saveBoardSettings()" class="px-5 py-2 rounded-full text-xs font-semibold bg-apple-blue hover:bg-apple-blue-hover text-white transition">Save</button>
             </div>
         </div>
     </div>
 
-    <!-- Sliding Board History Panel (macOS Time-Machine / Inspector Side Panel) -->
+    <!-- Sliding Board History Panel -->
     <div id="historyDrawerBackdrop" onclick="toggleHistoryDrawer(false)" class="hidden fixed inset-0 z-40 bg-black/25 dark:bg-black/50 backdrop-blur-[2px] transition-opacity"></div>
     <aside id="historyDrawer" class="fixed top-0 right-0 bottom-0 w-80 sm:w-96 bg-white/95 dark:bg-[#1C1C1E]/95 apple-frosted border-l border-black/[0.08] dark:border-white/[0.1] shadow-apple-panel z-50 flex flex-col transform translate-x-full panel-slide">
-        <!-- History Header -->
         <div class="h-14 px-4 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between shrink-0">
             <div class="flex items-center gap-2">
                 <div class="w-7 h-7 rounded-lg bg-apple-blue/10 text-apple-blue flex items-center justify-center">
@@ -386,20 +546,18 @@
                 <button onclick="clearCurrentBoardHistory()" class="p-1.5 hover:bg-apple-red/10 text-apple-red rounded-lg transition" title="Clear History Log">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
-                <button onclick="toggleHistoryDrawer(false)" class="p-1.5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-lg transition text-apple-gray-500">
+                <button onclick="toggleHistoryDrawer(false)" class="p-1.5 hover:bg-black/[0.05] rounded-lg transition text-apple-gray-500">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
         </div>
 
-        <!-- History Filter Search -->
         <div class="p-3 border-b border-black/[0.04] dark:border-white/[0.06]">
             <input id="historySearchInput" type="text" placeholder="Filter history actions..." 
                    oninput="renderHistoryList()"
                    class="w-full bg-[#EFEFF4] dark:bg-[#2C2C2E] text-xs px-3 py-1.5 rounded-xl border-none outline-none focus:ring-2 focus:ring-apple-blue/40">
         </div>
 
-        <!-- History Items Scroll Container -->
         <div id="historyListContainer" class="flex-1 overflow-y-auto p-4 space-y-3">
             <!-- Dynamic History Injected -->
         </div>
@@ -413,19 +571,19 @@
                     <i data-lucide="database" class="w-4 h-4 text-apple-blue"></i>
                     Storage & Backup
                 </h3>
-                <button onclick="closeDataModal()" class="p-1 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08]">
+                <button onclick="closeDataModal()" class="p-1 rounded-lg hover:bg-black/[0.05]">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
             <p class="text-xs text-apple-gray-500 mb-4 leading-relaxed">
-                All your boards, tasks, columns, and history are stored directly in your browser's persistent LocalStorage. You can export a full backup JSON file or restore anytime.
+                All boards and change histories persist to LocalStorage and can optionally mirror directly to Google Drive via the profile menu.
             </p>
 
             <div class="space-y-3">
                 <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#F5F5F7] dark:bg-[#2C2C2E]/60 border border-black/[0.04] dark:border-white/[0.06]">
                     <div>
                         <h4 class="text-xs font-semibold">Export JSON Archive</h4>
-                        <p class="text-[11px] text-apple-gray-500">Download complete dataset including change histories</p>
+                        <p class="text-[11px] text-apple-gray-500">Download complete dataset locally</p>
                     </div>
                     <button onclick="exportDataJson()" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-apple-blue hover:bg-apple-blue-hover text-white transition">Export</button>
                 </div>
@@ -433,9 +591,9 @@
                 <div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#F5F5F7] dark:bg-[#2C2C2E]/60 border border-black/[0.04] dark:border-white/[0.06]">
                     <div>
                         <h4 class="text-xs font-semibold">Import JSON Archive</h4>
-                        <p class="text-[11px] text-apple-gray-500">Restore from an existing JSON backup file</p>
+                        <p class="text-[11px] text-apple-gray-500">Restore from an existing backup</p>
                     </div>
-                    <label class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] cursor-pointer transition">
+                    <label class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] cursor-pointer transition">
                         <span>Import</span>
                         <input type="file" accept=".json" onchange="importDataJson(event)" class="hidden">
                     </label>
@@ -457,9 +615,11 @@
 
     <script>
         /* ==========================================================================
-           KANBAN PERSISTENCE & APPLICATION CORE STATE
+           KANBAN PERSISTENCE & GOOGLE DRIVE CLOUD STATE
            ========================================================================== */
-        const STORAGE_KEY = 'boardcraft_apple_full_state_v2';
+        const STORAGE_KEY = 'boardcraft_apple_full_state_v3';
+        const GOOGLE_CONFIG_KEY = 'boardcraft_google_config_v3';
+        const DRIVE_FILENAME = 'apple_kanban_boards.json';
 
         const ACCENT_COLORS = [
             { name: 'System Blue', hex: '#0071E3' },
@@ -470,7 +630,7 @@
             { name: 'System Pink', hex: '#FF2D55' }
         ];
 
-        // Seed data for fresh installations
+        // Seed data for fresh environments
         const DEFAULT_BOARDS = [
             {
                 id: 'board-vision',
@@ -538,7 +698,7 @@
                             {
                                 id: 'card-104',
                                 title: 'SF Pro Spatial Optical Kerning',
-                                desc: 'Inspect text legibility across 1.5m virtual viewing distances.',
+                                desc: 'Inspect text legibility across virtual viewing distances.',
                                 priority: 'low',
                                 dueDate: '',
                                 tags: ['Design', 'Typography'],
@@ -623,8 +783,21 @@
             darkMode: false
         };
 
-        // Live undo stack (memory-backed with active board correlation)
+        // Google Drive Integration State
+        let googleDrive = {
+            clientId: '',
+            accessToken: null,
+            tokenClient: null,
+            fileId: null,
+            autoSave: false,
+            lastSynced: null,
+            userProfile: null,
+            isSyncing: false
+        };
+
+        // Undo stack
         const undoStack = [];
+        let autoSaveDebounceTimer = null;
 
         // Active inspection modal state
         let currentModalCard = null;
@@ -637,13 +810,15 @@
             sourceColId: null,
             targetColId: null,
             targetCardId: null,
-            position: 'before' // 'before' or 'after'
+            position: 'before'
         };
 
         function initApp() {
             loadPersistedState();
+            loadGoogleDriveConfig();
             applyTheme();
             renderApp();
+            renderGoogleDriveUI();
             attachGlobalListeners();
             lucide.createIcons();
         }
@@ -662,20 +837,18 @@
                     state.activeBoardId = state.boards[0].id;
                 }
             } else {
-                // Initialize default seeds
                 state.boards = JSON.parse(JSON.stringify(DEFAULT_BOARDS));
                 state.activeBoardId = state.boards[0].id;
                 state.darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                persistState();
+                persistState(false);
             }
 
-            // Ensure board sanity
             if (!state.boards.find(b => b.id === state.activeBoardId) && state.boards.length > 0) {
                 state.activeBoardId = state.boards[0].id;
             }
         }
 
-        function persistState() {
+        function persistState(triggerCloudAutoSave = true) {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({
                     boards: state.boards,
@@ -687,12 +860,425 @@
                 showToast('Storage write quota exceeded', 'error');
             }
             updateUndoButtonState();
+
+            // Trigger Google Drive auto-save if linked and turned ON
+            if (triggerCloudAutoSave && googleDrive.accessToken && googleDrive.autoSave) {
+                queueCloudAutoSave();
+            }
         }
 
         function getActiveBoard() {
             return state.boards.find(b => b.id === state.activeBoardId) || state.boards[0];
         }
 
+        /* ==========================================================================
+           GOOGLE DRIVE INTEGRATION (OPTION 1: GIS + REST API v3)
+           ========================================================================== */
+        function loadGoogleDriveConfig() {
+            const raw = localStorage.getItem(GOOGLE_CONFIG_KEY);
+            if (raw) {
+                try {
+                    const conf = JSON.parse(raw);
+                    googleDrive.clientId = conf.clientId || '';
+                    googleDrive.autoSave = conf.autoSave || false;
+                    googleDrive.lastSynced = conf.lastSynced || null;
+                    googleDrive.fileId = conf.fileId || null;
+                    googleDrive.userProfile = conf.userProfile || null;
+                } catch (e) {
+                    console.warn('Could not read Google config', e);
+                }
+            }
+
+            const input = document.getElementById('googleClientIdInput');
+            if (input && googleDrive.clientId) {
+                input.value = googleDrive.clientId;
+            }
+
+            const toggle = document.getElementById('autoSaveToggle');
+            if (toggle) {
+                toggle.checked = !!googleDrive.autoSave;
+            }
+        }
+
+        function saveGoogleDriveConfig() {
+            try {
+                localStorage.setItem(GOOGLE_CONFIG_KEY, JSON.stringify({
+                    clientId: googleDrive.clientId,
+                    autoSave: googleDrive.autoSave,
+                    lastSynced: googleDrive.lastSynced,
+                    fileId: googleDrive.fileId,
+                    userProfile: googleDrive.userProfile
+                }));
+            } catch (e) {
+                console.error('Failed storing Google config', e);
+            }
+            renderGoogleDriveUI();
+        }
+
+        function toggleClientIdHelp() {
+            const el = document.getElementById('clientIdHelpText');
+            el.classList.toggle('hidden');
+        }
+
+        function connectGoogleDrive() {
+            const clientIdInput = document.getElementById('googleClientIdInput').value.trim();
+            if (!clientIdInput) {
+                toggleClientIdHelp();
+                showToast('Please enter your Google Cloud OAuth Client ID', 'error');
+                return;
+            }
+
+            googleDrive.clientId = clientIdInput;
+            saveGoogleDriveConfig();
+
+            if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+                showToast('Google Identity Services script still loading. Please retry...', 'info');
+                return;
+            }
+
+            try {
+                googleDrive.tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: googleDrive.clientId,
+                    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+                    callback: async (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            googleDrive.accessToken = tokenResponse.access_token;
+                            showToast('Authenticated with Google successfully!');
+                            await fetchGoogleUserProfile();
+                            await syncDriveFileDiscovery();
+                            renderGoogleDriveUI();
+                        } else {
+                            showToast('Google authentication cancelled or failed', 'error');
+                        }
+                    },
+                    error_callback: (err) => {
+                        console.error('Token Client error:', err);
+                        showToast('OAuth Error: Check Client ID & origins', 'error');
+                    }
+                });
+
+                // Request Token
+                googleDrive.tokenClient.requestAccessToken({ prompt: 'consent' });
+            } catch (err) {
+                console.error('GIS initialization failed:', err);
+                showToast(`Auth Failed: ${err.message || err}`, 'error');
+            }
+        }
+
+        async function fetchGoogleUserProfile() {
+            if (!googleDrive.accessToken) return;
+            try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${googleDrive.accessToken}` }
+                });
+                if (res.ok) {
+                    googleDrive.userProfile = await res.json();
+                    saveGoogleDriveConfig();
+                }
+            } catch (e) {
+                console.warn('Could not fetch user profile info', e);
+            }
+        }
+
+        async function syncDriveFileDiscovery() {
+            if (!googleDrive.accessToken) return;
+            setDriveSyncState(true, 'Finding Drive file...');
+
+            try {
+                // Look for existing file
+                const searchRes = await fetch(
+                    `https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILENAME}' and trashed=false&fields=files(id, name, modifiedTime)`,
+                    { headers: { Authorization: `Bearer ${googleDrive.accessToken}` } }
+                );
+
+                const data = await searchRes.json();
+
+                if (data.files && data.files.length > 0) {
+                    // Existing file found
+                    googleDrive.fileId = data.files[0].id;
+                    saveGoogleDriveConfig();
+                    
+                    // Ask user if they wish to pull remote cloud data or keep local
+                    const pullCloud = confirm(`Found existing "${DRIVE_FILENAME}" on Google Drive.\n\nClick OK to load remote cloud boards, or Cancel to keep current local boards and overwrite Drive.`);
+                    if (pullCloud) {
+                        await manualLoadFromDrive();
+                    } else {
+                        await manualSaveToDrive();
+                    }
+                } else {
+                    // Create initial file
+                    await manualSaveToDrive();
+                    showToast('Created "apple_kanban_boards.json" on Google Drive');
+                }
+            } catch (e) {
+                console.error('Error discovering Drive files', e);
+                showToast('Failed searching Google Drive', 'error');
+            } finally {
+                setDriveSyncState(false);
+            }
+        }
+
+        async function manualSaveToDrive() {
+            if (!googleDrive.accessToken) {
+                showToast('Google Drive is not connected', 'info');
+                toggleProfilePopover(true);
+                return;
+            }
+
+            setDriveSyncState(true, 'Saving to Drive...');
+
+            const payload = {
+                version: 3,
+                exportedAt: new Date().toISOString(),
+                state: {
+                    boards: state.boards,
+                    activeBoardId: state.activeBoardId,
+                    darkMode: state.darkMode
+                }
+            };
+
+            try {
+                if (googleDrive.fileId) {
+                    // Update existing file via PATCH
+                    const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${googleDrive.fileId}?uploadType=media`, {
+                        method: 'PATCH',
+                        headers: {
+                            Authorization: `Bearer ${googleDrive.accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload, null, 2)
+                    });
+
+                    if (!res.ok) {
+                        if (res.status === 404) {
+                            googleDrive.fileId = null;
+                            return await manualSaveToDrive();
+                        }
+                        throw new Error(`Cloud update failed: ${res.statusText}`);
+                    }
+                } else {
+                    // Create new file via multipart POST
+                    const metadata = {
+                        name: DRIVE_FILENAME,
+                        mimeType: 'application/json'
+                    };
+
+                    const boundary = '-------314159265358979323846';
+                    const delimiter = `\r\n--${boundary}\r\n`;
+                    const close_delim = `\r\n--${boundary}--`;
+
+                    const multipartRequestBody =
+                        delimiter +
+                        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                        JSON.stringify(metadata) +
+                        delimiter +
+                        'Content-Type: application/json\r\n\r\n' +
+                        JSON.stringify(payload, null, 2) +
+                        close_delim;
+
+                    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${googleDrive.accessToken}`,
+                            'Content-Type': `multipart/related; boundary=${boundary}`
+                        },
+                        body: multipartRequestBody
+                    });
+
+                    if (!res.ok) throw new Error(`Cloud upload failed: ${res.statusText}`);
+                    const newFileData = await res.json();
+                    googleDrive.fileId = newFileData.id;
+                }
+
+                googleDrive.lastSynced = Date.now();
+                saveGoogleDriveConfig();
+                showToast('Saved to Google Drive', 'cloud');
+            } catch (err) {
+                console.error('Save to Drive error:', err);
+                showToast(`Cloud save error: ${err.message}`, 'error');
+            } finally {
+                setDriveSyncState(false);
+            }
+        }
+
+        async function manualLoadFromDrive() {
+            if (!googleDrive.accessToken || !googleDrive.fileId) {
+                showToast('Google Drive file not available yet', 'info');
+                return;
+            }
+
+            setDriveSyncState(true, 'Loading from Drive...');
+
+            try {
+                const res = await fetch(`https://www.googleapis.com/drive/v3/files/${googleDrive.fileId}?alt=media`, {
+                    headers: { Authorization: `Bearer ${googleDrive.accessToken}` }
+                });
+
+                if (!res.ok) throw new Error(`Download error: ${res.statusText}`);
+
+                const downloaded = await res.json();
+                if (downloaded && downloaded.state && Array.isArray(downloaded.state.boards)) {
+                    state = downloaded.state;
+                    googleDrive.lastSynced = Date.now();
+                    persistState(false);
+                    applyTheme();
+                    renderApp();
+                    saveGoogleDriveConfig();
+                    showToast('Loaded boards from Google Drive', 'cloud');
+                } else {
+                    showToast('Unrecognized cloud data format', 'error');
+                }
+            } catch (err) {
+                console.error('Load from Drive error:', err);
+                showToast(`Cloud load error: ${err.message}`, 'error');
+            } finally {
+                setDriveSyncState(false);
+            }
+        }
+
+        function queueCloudAutoSave() {
+            if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
+            setDriveSyncState(true, 'Auto-syncing...');
+
+            autoSaveDebounceTimer = setTimeout(() => {
+                manualSaveToDrive();
+            }, 1200);
+        }
+
+        function toggleAutoSave(enabled) {
+            googleDrive.autoSave = enabled;
+            saveGoogleDriveConfig();
+            if (enabled && googleDrive.accessToken) {
+                manualSaveToDrive();
+                showToast('Auto-Save to Google Drive is ON');
+            } else {
+                showToast('Auto-Save turned OFF');
+            }
+        }
+
+        function disconnectGoogleDrive() {
+            googleDrive.accessToken = null;
+            googleDrive.userProfile = null;
+            googleDrive.fileId = null;
+            saveGoogleDriveConfig();
+            renderGoogleDriveUI();
+            showToast('Google Drive unlinked');
+        }
+
+        function setDriveSyncState(isSyncing, labelText = null) {
+            googleDrive.isSyncing = isSyncing;
+            const headerBtn = document.getElementById('driveHeaderSaveBtn');
+            const headerLabel = document.getElementById('driveHeaderSaveLabel');
+            const cloudIcon = document.getElementById('driveSaveCloudIcon');
+
+            if (isSyncing) {
+                cloudIcon.classList.add('spin-cloud');
+                if (headerLabel && labelText) headerLabel.textContent = labelText;
+            } else {
+                cloudIcon.classList.remove('spin-cloud');
+                if (headerLabel) headerLabel.textContent = 'Save to Drive';
+            }
+        }
+
+        function renderGoogleDriveUI() {
+            const isConnected = !!googleDrive.accessToken;
+            const user = googleDrive.userProfile;
+
+            // Profile Button in top bar
+            const profileDot = document.getElementById('profileCloudDot');
+            const avatarImg = document.getElementById('profileAvatarImg');
+            const avatarFallback = document.getElementById('profileAvatarFallback');
+            const headerSaveBtn = document.getElementById('driveHeaderSaveBtn');
+
+            if (isConnected) {
+                profileDot.classList.remove('hidden');
+                headerSaveBtn.classList.remove('hidden');
+                headerSaveBtn.classList.add('flex');
+            } else {
+                profileDot.classList.add('hidden');
+                headerSaveBtn.classList.add('hidden');
+                headerSaveBtn.classList.remove('flex');
+            }
+
+            if (user && user.picture) {
+                avatarImg.src = user.picture;
+                avatarImg.classList.remove('hidden');
+                avatarFallback.classList.add('hidden');
+            } else {
+                avatarImg.classList.add('hidden');
+                avatarFallback.classList.remove('hidden');
+            }
+
+            // Inside Popover
+            const popoverName = document.getElementById('popoverUserName');
+            const popoverEmail = document.getElementById('popoverUserEmail');
+            const popoverBadge = document.getElementById('popoverAuthBadge');
+            const popoverImg = document.getElementById('popoverAvatarImg');
+            const popoverIcon = document.getElementById('popoverAvatarIcon');
+
+            if (isConnected && user) {
+                popoverName.textContent = user.name || 'Google User';
+                popoverEmail.textContent = user.email || 'Connected to Drive';
+                popoverBadge.textContent = 'Drive Linked';
+                popoverBadge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-apple-green/10 text-apple-green';
+
+                if (user.picture) {
+                    popoverImg.src = user.picture;
+                    popoverImg.classList.remove('hidden');
+                    popoverIcon.classList.add('hidden');
+                }
+            } else {
+                popoverName.textContent = 'Local Guest';
+                popoverEmail.textContent = 'Saved in browser local storage';
+                popoverBadge.textContent = 'Local Only';
+                popoverBadge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-apple-gray-200 dark:bg-apple-gray-700 text-apple-gray-600 dark:text-apple-gray-300';
+                popoverImg.classList.add('hidden');
+                popoverIcon.classList.remove('hidden');
+            }
+
+            // Connection blocks
+            const unconnectedBlock = document.getElementById('driveUnconnectedBlock');
+            const connectedBlock = document.getElementById('driveConnectedBlock');
+            const statusIndicator = document.getElementById('driveStatusIndicator');
+            const subtitle = document.getElementById('driveConnectionSubtitle');
+            const lastSyncLabel = document.getElementById('lastDriveSyncLabel');
+
+            if (isConnected) {
+                unconnectedBlock.classList.add('hidden');
+                connectedBlock.classList.remove('hidden');
+                statusIndicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-apple-green"></span><span class="text-apple-green font-semibold">Connected</span>';
+                subtitle.textContent = `File: ${DRIVE_FILENAME}`;
+
+                if (googleDrive.lastSynced) {
+                    const timeAgo = new Date(googleDrive.lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    lastSyncLabel.textContent = `Last synced at ${timeAgo}`;
+                } else {
+                    lastSyncLabel.textContent = 'Never synced';
+                }
+            } else {
+                unconnectedBlock.classList.remove('hidden');
+                connectedBlock.classList.add('hidden');
+                statusIndicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-apple-gray-400"></span><span>Disconnected</span>';
+                subtitle.textContent = 'Not linked';
+            }
+
+            lucide.createIcons();
+        }
+
+        function toggleProfilePopover(forceOpen = null) {
+            const popover = document.getElementById('profilePopover');
+            if (forceOpen === true) {
+                popover.classList.remove('hidden');
+            } else if (forceOpen === false) {
+                popover.classList.add('hidden');
+            } else {
+                popover.classList.toggle('hidden');
+            }
+        }
+
+        /* ==========================================================================
+           CHANGE HISTORY, AUDIT TRAIL & REVERSIBLE UNDO
+           ========================================================================== */
         function recordBoardHistory(action, details, board = null) {
             const targetBoard = board || getActiveBoard();
             if (!targetBoard) return;
@@ -708,7 +1294,6 @@
                 timestamp: Date.now()
             };
 
-            // Prepend latest entry, limit to 200 items per board
             targetBoard.history.unshift(entry);
             if (targetBoard.history.length > 200) {
                 targetBoard.history.pop();
@@ -761,30 +1346,35 @@
         }
 
         function attachGlobalListeners() {
-            // Dropdown dismiss on outside click
+            // Dismiss popovers on outside click
             window.addEventListener('click', (e) => {
                 const pickerBtn = document.getElementById('boardPickerBtn');
                 const dropdown = document.getElementById('boardDropdown');
                 if (pickerBtn && dropdown && !pickerBtn.contains(e.target) && !dropdown.contains(e.target)) {
                     dropdown.classList.add('hidden');
                 }
+
+                const profileBtn = document.getElementById('profileBtn');
+                const profilePopover = document.getElementById('profilePopover');
+                if (profileBtn && profilePopover && !profileBtn.contains(e.target) && !profilePopover.contains(e.target)) {
+                    profilePopover.classList.add('hidden');
+                }
             });
 
-            // Keyboard shortcut handler
+            // Keyboard shortcut handling (Cmd/Ctrl + Z Undo, Escape modal close)
             window.addEventListener('keydown', (e) => {
-                // Cmd/Ctrl + Z Undo
                 if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
                     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
                         e.preventDefault();
                         undoLastAction();
                     }
                 }
-                // Escape closes active modals or side drawer
                 if (e.key === 'Escape') {
                     closeCardModal();
                     closeBoardModal();
                     closeDataModal();
                     toggleHistoryDrawer(false);
+                    toggleProfilePopover(false);
                 }
             });
         }
@@ -808,7 +1398,7 @@
             document.getElementById('boardLogoBadge').style.backgroundColor = accentHex;
             document.getElementById('historyBoardSubtitle').textContent = activeBoard.title;
 
-            // Render Board Picker Dropdown List
+            // Render Board Picker Dropdown
             const listEl = document.getElementById('boardList');
             listEl.innerHTML = '';
 
@@ -909,7 +1499,7 @@
 
                 colWrapper.appendChild(cardsContainer);
 
-                // Inline Card Quick Add Footer
+                // Quick Add Card Footer
                 const footer = document.createElement('div');
                 footer.className = 'p-3 pt-1 border-t border-black/[0.03] dark:border-white/[0.04]';
                 footer.appendChild(createQuickCardAddElement(col.id));
@@ -918,7 +1508,7 @@
                 container.appendChild(colWrapper);
             });
 
-            // Append "+ Add New Column" button at board right end
+            // "+ Add New Column" button
             const addColumnCard = document.createElement('div');
             addColumnCard.className = 'w-80 shrink-0';
             addColumnCard.innerHTML = `
@@ -942,7 +1532,6 @@
                 openCardModal(columnId, card.id);
             };
 
-            // Priority styling map
             const priorityTokens = {
                 urgent: { label: 'Urgent', bg: 'bg-red-500/10 dark:bg-red-500/20', text: 'text-red-600 dark:text-red-400' },
                 high: { label: 'High', bg: 'bg-orange-500/10 dark:bg-orange-500/20', text: 'text-orange-600 dark:text-orange-400' },
@@ -952,14 +1541,11 @@
             };
             const pBadge = priorityTokens[card.priority] || null;
 
-            // Checklists computation
             const checklistCount = card.checklist ? card.checklist.length : 0;
             const completedCount = checklistCount > 0 ? card.checklist.filter(i => i.done).length : 0;
-
             const dateInfo = evaluateDueDate(card.dueDate);
 
             cardEl.innerHTML = `
-                <!-- Priority & Tags Row -->
                 <div class="flex flex-wrap items-center gap-1.5 mb-2">
                     ${pBadge ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md ${pBadge.bg} ${pBadge.text}">${pBadge.label}</span>` : ''}
                     ${card.tags && card.tags.length > 0 ? card.tags.map(t => `
@@ -969,19 +1555,16 @@
                     `).join('') : ''}
                 </div>
 
-                <!-- Card Title -->
                 <div class="font-medium text-[13.5px] leading-snug tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] mb-1.5 break-words">
                     ${escapeHtml(card.title)}
                 </div>
 
-                <!-- Note / Description excerpt -->
                 ${card.desc ? `
                     <p class="text-xs text-apple-gray-500 line-clamp-2 mb-2 font-normal leading-relaxed">
                         ${escapeHtml(card.desc)}
                     </p>
                 ` : ''}
 
-                <!-- Footer Metas -->
                 ${(checklistCount > 0 || dateInfo) ? `
                     <div class="flex items-center gap-3 pt-2 mt-1 border-t border-black/[0.04] dark:border-white/[0.06] text-[11px] text-apple-gray-500 font-medium">
                         ${checklistCount > 0 ? `
@@ -1164,9 +1747,7 @@
             const cardIndex = srcCol.cards.findIndex(c => c.id === cardId);
             if (cardIndex === -1) return;
 
-            // Preserve snapshot for Undo
             const previousBoardsState = JSON.parse(JSON.stringify(state.boards));
-
             const [card] = srcCol.cards.splice(cardIndex, 1);
 
             if (targetCardId) {
@@ -1216,7 +1797,7 @@
 
             col.cards.push(newCard);
 
-            recordBoardHistory('Created Task', `Added "${newCard.title}" to column [${col.title}]`);
+            recordBoardHistory('Created Task', `Added "${newCard.title}" to [${col.title}]`);
 
             recordUndoAction(`Add task "${newCard.title}"`, () => {
                 state.boards = previousBoardsState;
@@ -1288,7 +1869,7 @@
 
             const cardCount = col.cards.length;
             const message = cardCount > 0 
-                ? `Column "${col.title}" contains ${cardCount} task(s). Delete this column and all its contents?`
+                ? `Column "${col.title}" contains ${cardCount} task(s). Delete this column and all cards?`
                 : `Delete column "${col.title}"?`;
 
             if (confirm(message)) {
@@ -1371,7 +1952,6 @@
 
             const previousBoardsState = JSON.parse(JSON.stringify(state.boards));
 
-            const oldTitle = currentModalCard.title;
             const newTitle = document.getElementById('modalCardTitle').value.trim() || 'Untitled Task';
             const newDesc = document.getElementById('modalCardDesc').value.trim();
             const newPriority = document.getElementById('modalCardPriority').value;
@@ -1390,7 +1970,7 @@
             currentModalCard.tags = newTags;
             currentModalCard.checklist = modalTempChecklist;
 
-            recordBoardHistory('Edited Task', `Updated details for task "${newTitle}"`);
+            recordBoardHistory('Edited Task', `Updated details for "${newTitle}"`);
 
             recordUndoAction(`Edit task "${newTitle}"`, () => {
                 state.boards = previousBoardsState;
@@ -1577,7 +2157,7 @@
                     const oldTitle = board.title;
                     board.title = titleInput;
                     board.accentColor = selectedModalAccent;
-                    recordBoardHistory('Board Settings', `Renamed board from "${oldTitle}" to "${titleInput}"`, board);
+                    recordBoardHistory('Board Settings', `Renamed board to "${titleInput}"`, board);
                 }
             } else {
                 const newBoard = {
@@ -1593,10 +2173,10 @@
                 };
                 state.boards.push(newBoard);
                 state.activeBoardId = newBoard.id;
-                recordBoardHistory('Board Created', `Created new board "${titleInput}"`, newBoard);
+                recordBoardHistory('Board Created', `Created board "${titleInput}"`, newBoard);
             }
 
-            recordUndoAction(`Board settings update`, () => {
+            recordUndoAction(`Board update`, () => {
                 state.boards = previousBoardsState;
                 persistState();
             });
@@ -1614,7 +2194,7 @@
             }
 
             const current = getActiveBoard();
-            if (confirm(`Delete board "${current.title}" and its entire history? This action is immediate.`)) {
+            if (confirm(`Delete board "${current.title}"?`)) {
                 const previousBoardsState = JSON.parse(JSON.stringify(state.boards));
 
                 state.boards = state.boards.filter(b => b.id !== current.id);
@@ -1748,7 +2328,7 @@
 
         function exportDataJson() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-                version: 2,
+                version: 3,
                 exportedAt: new Date().toISOString(),
                 state: state
             }, null, 2));
@@ -1788,7 +2368,7 @@
         }
 
         function resetToDefaults() {
-            if (confirm('Erase all current boards and restore default factory templates? This resets LocalStorage.')) {
+            if (confirm('Erase all current boards and restore default templates? This resets local state.')) {
                 state.boards = JSON.parse(JSON.stringify(DEFAULT_BOARDS));
                 state.activeBoardId = state.boards[0].id;
                 persistState();
@@ -1843,6 +2423,8 @@
                 iconHtml = '<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-apple-red"></i>';
             } else if (type === 'info') {
                 iconHtml = '<i data-lucide="info" class="w-3.5 h-3.5 text-apple-blue"></i>';
+            } else if (type === 'cloud') {
+                iconHtml = '<i data-lucide="cloud-check" class="w-3.5 h-3.5 text-apple-blue"></i>';
             }
 
             toast.innerHTML = `${iconHtml} <span>${message}</span>`;
@@ -1856,7 +2438,6 @@
             }, 2600);
         }
 
-        // Initialize on DOM Ready
         window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
