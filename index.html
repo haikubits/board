@@ -219,6 +219,13 @@
                 <span>Add Column</span>
             </button>
 
+            <!-- GitHub Sync Button -->
+            <button id="githubBtn" onclick="openGitHubModal()" class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-full bg-black/[0.04] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.14] transition text-[#1D1D1F] dark:text-[#F5F5F7]" title="GitHub PAT Sync">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                <span id="githubBtnLabel" class="hidden sm:inline max-w-[160px] truncate">GitHub</span>
+                <span id="githubBtnDot" class="hidden w-2 h-2 rounded-full shrink-0"></span>
+            </button>
+
             <!-- Data Export/Import Overflow Button -->
             <button onclick="openDataModal()" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.1] text-apple-gray-600 dark:text-apple-gray-300 transition" title="Data Backup & Restore">
                 <i data-lucide="hard-drive-download" class="w-4 h-4"></i>
@@ -452,6 +459,75 @@
         </div>
     </div>
 
+    <!-- GitHub PAT Sync Modal -->
+    <div id="githubModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/70 backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#1C1C1E] rounded-3xl shadow-apple-sheet w-full max-w-lg max-h-[92vh] overflow-y-auto p-6 border border-black/[0.08] dark:border-white/[0.1]">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    GitHub PAT Sync
+                </h3>
+                <button onclick="closeGitHubModal()" class="p-1 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08]">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <p class="text-xs text-apple-gray-500 mb-4 leading-relaxed">
+                Enter a GitHub personal access token and repo details. Everything runs in your browser and talks directly to the GitHub API.
+                A fine-grained token needs <b>Contents: Read and write</b> on the repo (plus <b>Administration: Read and write</b> if it should create the repo).
+            </p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-apple-gray-500 mb-1">GitHub Token</label>
+                    <input id="githubTokenInput" type="password" autocomplete="off" placeholder="github_pat_... or ghp_..." class="w-full bg-[#F5F5F7] dark:bg-[#2C2C2E] text-[13px] px-3 py-2 rounded-xl border border-black/[0.06] dark:border-white/[0.08] focus:ring-2 focus:ring-apple-blue/50 outline-none select-text">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase tracking-wider text-apple-gray-500 mb-1">Repository Owner</label>
+                        <input id="githubOwnerInput" type="text" placeholder="your-username" class="w-full bg-[#F5F5F7] dark:bg-[#2C2C2E] text-[13px] px-3 py-2 rounded-xl border border-black/[0.06] dark:border-white/[0.08] focus:ring-2 focus:ring-apple-blue/50 outline-none select-text">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase tracking-wider text-apple-gray-500 mb-1">Repository Name</label>
+                        <input id="githubRepoInput" type="text" placeholder="boardcraft-boards" class="w-full bg-[#F5F5F7] dark:bg-[#2C2C2E] text-[13px] px-3 py-2 rounded-xl border border-black/[0.06] dark:border-white/[0.08] focus:ring-2 focus:ring-apple-blue/50 outline-none select-text">
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 text-xs text-apple-gray-600 dark:text-apple-gray-300">
+                    <input id="githubCreateRepoCheckbox" type="checkbox" class="accent-[#0071E3]">
+                    Create repo if it does not exist
+                </label>
+            </div>
+
+            <div id="githubSyncSection" class="hidden mt-5 pt-4 border-t border-black/[0.06] dark:border-white/[0.08]">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-apple-gray-500 mb-1">Sync Boards</div>
+                <p class="text-[11px] text-apple-gray-500 mb-3 leading-relaxed">
+                    Each board is stored in its own folder: <code>boards/&lt;folder&gt;/board.json</code>.
+                </p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="githubPushCurrentBtn" onclick="pushCurrentBoard()" class="gh-sync-btn flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] transition disabled:opacity-50">
+                        <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i> Push current
+                    </button>
+                    <button id="githubPushAllBtn" onclick="pushAllBoards()" class="gh-sync-btn flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] transition disabled:opacity-50">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Push all
+                    </button>
+                    <button id="githubPullBtn" onclick="pullBoards()" class="gh-sync-btn flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] transition disabled:opacity-50">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Pull
+                    </button>
+                    <button id="githubSyncAllBtn" onclick="syncAllBoards()" class="gh-sync-btn flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-apple-blue hover:bg-apple-blue-hover text-white transition disabled:opacity-50">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync all
+                    </button>
+                </div>
+                <button id="githubRenameFolderBtn" onclick="renameRemoteFolder()" class="gh-sync-btn text-[11px] text-apple-blue hover:underline mt-3 disabled:opacity-50">Rename current board's GitHub folder to match its title</button>
+                <div id="githubSyncStatus" class="text-[11px] text-apple-gray-500 mt-2 min-h-[1rem] select-text"></div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button id="githubDisconnectBtn" onclick="disconnectGitHub()" class="hidden px-4 py-2 rounded-full text-xs font-semibold bg-apple-red text-white hover:bg-red-600 transition">Disconnect</button>
+                <button id="githubConnectBtn" onclick="connectGitHubFromModal()" class="px-4 py-2 rounded-full text-xs font-semibold bg-apple-blue hover:bg-apple-blue-hover text-white transition">Connect</button>
+                <button onclick="closeGitHubModal()" class="px-4 py-2 rounded-full text-xs font-semibold bg-black/[0.05] dark:bg-white/[0.1] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Anchor -->
     <div id="toastContainer" class="fixed bottom-6 right-6 z-50 pointer-events-none flex flex-col gap-2"></div>
 
@@ -645,6 +721,7 @@
             applyTheme();
             renderApp();
             attachGlobalListeners();
+            updateGitHubButton();
             lucide.createIcons();
         }
 
@@ -687,6 +764,7 @@
                 showToast('Storage write quota exceeded', 'error');
             }
             updateUndoButtonState();
+            updateSyncIndicators();
         }
 
         function getActiveBoard() {
@@ -784,6 +862,7 @@
                     closeCardModal();
                     closeBoardModal();
                     closeDataModal();
+                    closeGitHubModal();
                     toggleHistoryDrawer(false);
                 }
             });
@@ -829,7 +908,10 @@
                         <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${b.accentColor || '#0071E3'}"></span>
                         <span class="truncate">${escapeHtml(b.title)}</span>
                     </div>
-                    <span class="text-[11px] text-apple-gray-400 font-normal ml-2">${totalCards} cards</span>
+                    <div class="flex items-center gap-2 ml-2 shrink-0">
+                        <span data-sync-badge="${b.id}" class="inline-flex">${syncBadgeHTML(b)}</span>
+                        <span class="text-[11px] text-apple-gray-400 font-normal">${totalCards} cards</span>
+                    </div>
                 `;
                 listEl.appendChild(item);
             });
@@ -1854,6 +1936,677 @@
                 toast.classList.add('toast-exit');
                 setTimeout(() => toast.remove(), 250);
             }, 2600);
+        }
+
+        /* ==========================================================================
+           GITHUB PAT SYNC
+           Repo layout: boards/<slug>/board.json (one folder per board).
+           Writes use the Git Data API so a multi-board push is a single atomic commit.
+           Sync bookkeeping lives in its own localStorage key (not inside state.boards) so
+           undo snapshots, JSON import/export and resets never corrupt it.
+           ========================================================================== */
+        const GH_STORAGE = {
+            token: 'boardcraft_github_token',
+            owner: 'boardcraft_github_owner',
+            repo: 'boardcraft_github_repo',
+            sync: 'boardcraft_github_sync'
+        };
+        const BOARDS_ROOT = 'boards';
+
+        const githubState = {
+            token: localStorage.getItem(GH_STORAGE.token) || '',
+            owner: localStorage.getItem(GH_STORAGE.owner) || '',
+            repo: localStorage.getItem(GH_STORAGE.repo) || '',
+            createIfMissing: false,
+            busy: false
+        };
+
+        // { repo: 'owner/repo', boards: { [boardId]: { slug, sha, hash, lastSyncedAt, conflict } } }
+        let githubSync = loadGitHubSync();
+
+        function loadGitHubSync() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(GH_STORAGE.sync) || 'null');
+                if (parsed && parsed.boards) return parsed;
+            } catch (e) { }
+            return { repo: '', boards: {} };
+        }
+
+        function saveGitHubSync() {
+            localStorage.setItem(GH_STORAGE.sync, JSON.stringify(githubSync));
+        }
+
+        function currentRepoKey() {
+            return `${githubState.owner}/${githubState.repo}`.toLowerCase();
+        }
+
+        function isGitHubConnected() {
+            return !!(githubState.token && githubState.owner && githubState.repo);
+        }
+
+        function repoBase() {
+            return `/repos/${encodeURIComponent(githubState.owner)}/${encodeURIComponent(githubState.repo)}`;
+        }
+
+        function branchRefPath(branch) {
+            return branch.split('/').map(encodeURIComponent).join('/');
+        }
+
+        function boardPath(slug) {
+            return `${BOARDS_ROOT}/${slug}/board.json`;
+        }
+
+        function slugify(text) {
+            return String(text || '')
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9._-]+/g, '-')
+                .replace(/^[-.]+|[-.]+$/g, '')
+                .slice(0, 64) || 'board';
+        }
+
+        // cyrb53-style hash of the synced board fields, used to detect unpushed local edits.
+        function hashString(s) {
+            let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+            for (let i = 0; i < s.length; i++) {
+                const ch = s.charCodeAt(i);
+                h1 = Math.imul(h1 ^ ch, 2654435761);
+                h2 = Math.imul(h2 ^ ch, 1597334677);
+            }
+            h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+            h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+            return (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16);
+        }
+
+        function boardHash(b) {
+            return hashString(JSON.stringify([b.title || '', b.accentColor || '', b.columns || []]));
+        }
+
+        function getBoardSyncMeta(boardId) {
+            return githubSync.boards[boardId] || null;
+        }
+
+        function getBoardSyncStatus(b) {
+            const meta = getBoardSyncMeta(b.id);
+            if (meta && meta.conflict) return 'conflict';
+            if (!meta || !meta.sha) return 'new';
+            return boardHash(b) !== meta.hash ? 'dirty' : 'synced';
+        }
+
+        function isBoardDirty(b) {
+            return getBoardSyncStatus(b) !== 'synced';
+        }
+
+        const SYNC_BADGES = {
+            new: ['border border-apple-gray-400 bg-transparent', 'Not yet pushed to GitHub'],
+            dirty: ['bg-apple-orange', 'Local changes not pushed to GitHub'],
+            conflict: ['bg-apple-red', 'Conflict: changed both locally and on GitHub'],
+            synced: ['bg-apple-green', 'Synced with GitHub']
+        };
+
+        function syncBadgeHTML(b) {
+            if (!isGitHubConnected()) return '';
+            const [cls, title] = SYNC_BADGES[getBoardSyncStatus(b)];
+            return `<span class="inline-block w-2 h-2 rounded-full ${cls}" title="${title}"></span>`;
+        }
+
+        function updateSyncIndicators() {
+            document.querySelectorAll('[data-sync-badge]').forEach(el => {
+                const board = state.boards.find(b => b.id === el.dataset.syncBadge);
+                el.innerHTML = board ? syncBadgeHTML(board) : '';
+            });
+
+            const dot = document.getElementById('githubBtnDot');
+            if (!dot) return;
+            if (!isGitHubConnected()) {
+                dot.className = 'hidden';
+                return;
+            }
+            const statuses = state.boards.map(getBoardSyncStatus);
+            const overall = statuses.includes('conflict') ? 'conflict'
+                : statuses.some(s => s === 'dirty' || s === 'new') ? 'dirty' : 'synced';
+            const [cls, title] = SYNC_BADGES[overall];
+            dot.className = `inline-block w-2 h-2 rounded-full shrink-0 ${cls}`;
+            dot.title = overall === 'dirty' ? 'Some boards have changes not pushed to GitHub' : title;
+        }
+
+        function markBoardSynced(board, slug, sha) {
+            githubSync.boards[board.id] = {
+                slug,
+                sha: sha || null,
+                hash: boardHash(board),
+                lastSyncedAt: new Date().toISOString(),
+                conflict: false
+            };
+        }
+
+        function markBoardConflict(board) {
+            githubSync.boards[board.id] = { ...(getBoardSyncMeta(board.id) || {}), conflict: true };
+        }
+
+        function updateGitHubButton() {
+            const label = document.getElementById('githubBtnLabel');
+            const btn = document.getElementById('githubBtn');
+            if (isGitHubConnected()) {
+                label.textContent = `${githubState.owner}/${githubState.repo}`;
+                btn.title = 'GitHub PAT connected';
+            } else {
+                label.textContent = 'GitHub';
+                btn.title = 'GitHub PAT Sync';
+            }
+            updateSyncIndicators();
+        }
+
+        function saveGitHubConfig() {
+            localStorage.setItem(GH_STORAGE.token, githubState.token || '');
+            localStorage.setItem(GH_STORAGE.owner, githubState.owner || '');
+            localStorage.setItem(GH_STORAGE.repo, githubState.repo || '');
+            // Sync bookkeeping only applies to the repo it was recorded against.
+            if (githubSync.repo !== currentRepoKey()) {
+                githubSync = { repo: currentRepoKey(), boards: {} };
+                saveGitHubSync();
+            }
+            updateGitHubButton();
+        }
+
+        function clearGitHubConfig() {
+            githubState.token = '';
+            githubState.owner = '';
+            githubState.repo = '';
+            Object.values(GH_STORAGE).filter(k => k !== GH_STORAGE.sync).forEach(k => localStorage.removeItem(k));
+            updateGitHubButton();
+        }
+
+        function base64Encode(str) {
+            const bytes = new TextEncoder().encode(str);
+            let binary = '';
+            bytes.forEach((b) => binary += String.fromCharCode(b));
+            return btoa(binary);
+        }
+
+        function base64Decode(b64) {
+            const binary = atob((b64 || '').replace(/\s/g, ''));
+            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+            return new TextDecoder().decode(bytes);
+        }
+
+        async function githubRequest(path, options = {}, token = githubState.token) {
+            if (!token) throw new Error('No GitHub token configured');
+
+            const res = await fetch(`https://api.github.com${path}`, {
+                ...options,
+                headers: {
+                    'Accept': 'application/vnd.github+json',
+                    'Authorization': `Bearer ${token}`,
+                    'X-GitHub-Api-Version': '2022-11-28',
+                    ...(options.headers || {})
+                }
+            });
+
+            if (!res.ok) {
+                const body = await res.text();
+                let message = `GitHub API request failed (${res.status})`;
+                try {
+                    const json = JSON.parse(body);
+                    if (json.message) message = json.message;
+                } catch (e) { }
+                const error = new Error(message);
+                error.status = res.status;
+                throw error;
+            }
+
+            const text = await res.text();
+            return text ? JSON.parse(text) : null;
+        }
+
+        async function ensureGitHubRepoExists() {
+            const fullName = `${githubState.owner}/${githubState.repo}`;
+            try {
+                return await githubRequest(repoBase());
+            } catch (err) {
+                if (err.status && err.status !== 404) throw err;
+                // A 404 can also mean the repo exists but a fine-grained token was not granted access to it.
+                if (!githubState.createIfMissing) {
+                    throw new Error(`Repository ${fullName} was not found, or your token has no access to it. Create it on GitHub (or enable "Create repo if it does not exist") and make sure the token can access it`);
+                }
+                const created = await githubRequest('/user/repos', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: githubState.repo, private: false, auto_init: true })
+                });
+                created.justCreated = true;
+                return created;
+            }
+        }
+
+        // The Git Data API cannot operate on a repo with no commits, so seed one via the Contents API.
+        async function initializeEmptyRepo() {
+            await githubRequest(`${repoBase()}/contents/README.md`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    message: 'Initialize BoardCraft boards repo',
+                    content: base64Encode('# BoardCraft Boards\n\nEach folder under `boards/` is one BoardCraft Kanban board (`board.json`).\n')
+                })
+            });
+        }
+
+        async function getBranchRef(branch, justCreated) {
+            const path = `${repoBase()}/git/ref/heads/${branchRefPath(branch)}`;
+            const isEmptyRepoError = (err) => err.status === 404 || err.status === 409;
+
+            if (!justCreated) {
+                try {
+                    return await githubRequest(path);
+                } catch (err) {
+                    if (!isEmptyRepoError(err)) throw err;
+                    await initializeEmptyRepo();
+                }
+            }
+
+            // Newly created repos can take a moment before their branch ref is readable.
+            for (let attempt = 0; ; attempt++) {
+                try {
+                    return await githubRequest(path);
+                } catch (err) {
+                    if (!isEmptyRepoError(err) || attempt >= 5) throw err;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        }
+
+        function treeToFileMap(tree) {
+            const files = new Map();
+            (tree.tree || []).forEach(entry => {
+                if (entry.type === 'blob') files.set(entry.path, entry.sha);
+            });
+            return files;
+        }
+
+        async function getRemoteSnapshot() {
+            const repoInfo = await ensureGitHubRepoExists();
+            const branch = repoInfo.default_branch || 'main';
+            const ref = await getBranchRef(branch, !!repoInfo.justCreated);
+
+            const commitSha = ref.object.sha;
+            const commit = await githubRequest(`${repoBase()}/git/commits/${commitSha}`);
+            const tree = await githubRequest(`${repoBase()}/git/trees/${commit.tree.sha}?recursive=1`);
+            if (tree.truncated) {
+                showToast('Repository is very large; some boards may be missing from sync', 'error');
+            }
+
+            return { branch, commitSha, treeSha: commit.tree.sha, files: treeToFileMap(tree) };
+        }
+
+        async function commitTreeEntries(snapshot, entries, message) {
+            const tree = await githubRequest(`${repoBase()}/git/trees`, {
+                method: 'POST',
+                body: JSON.stringify({ base_tree: snapshot.treeSha, tree: entries })
+            });
+            const commit = await githubRequest(`${repoBase()}/git/commits`, {
+                method: 'POST',
+                body: JSON.stringify({ message, tree: tree.sha, parents: [snapshot.commitSha] })
+            });
+            try {
+                await githubRequest(`${repoBase()}/git/refs/heads/${branchRefPath(snapshot.branch)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ sha: commit.sha })
+                });
+            } catch (err) {
+                if (err.status === 422) throw new Error('GitHub branch changed during sync. Please try again');
+                throw err;
+            }
+            const newTree = await githubRequest(`${repoBase()}/git/trees/${tree.sha}?recursive=1`);
+            return treeToFileMap(newTree);
+        }
+
+        function serializeBoard(board, slug) {
+            return JSON.stringify({
+                format: 'boardcraft-board',
+                version: 1,
+                id: board.id,
+                slug,
+                title: board.title,
+                accentColor: board.accentColor || '#0071E3',
+                columns: board.columns || [],
+                history: board.history || [],
+                updatedAt: new Date().toISOString()
+            }, null, 2) + '\n';
+        }
+
+        async function fetchRemoteBoard(sha) {
+            const blob = await githubRequest(`${repoBase()}/git/blobs/${sha}`);
+            try {
+                const data = JSON.parse(base64Decode(blob.content));
+                return data && Array.isArray(data.columns) ? data : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function listRemoteBoards(files) {
+            const pattern = new RegExp(`^${BOARDS_ROOT}/([^/]+)/board\\.json$`);
+            const remote = new Map();
+            files.forEach((sha, path) => {
+                const match = path.match(pattern);
+                if (match) remote.set(match[1], sha);
+            });
+            return remote;
+        }
+
+        // Folder names are fixed once a board has been pushed; before that they follow the title
+        // and avoid folders that already belong to a different board.
+        async function resolveSlugForPush(board, snapshot, reserved) {
+            const meta = getBoardSyncMeta(board.id);
+            if (meta && meta.slug) return meta.slug;
+
+            const base = slugify(board.title);
+            for (let n = 1; ; n++) {
+                const slug = n === 1 ? base : `${base}-${n}`;
+                if (reserved.has(slug)) continue;
+                if (Object.entries(githubSync.boards).some(([id, m]) => id !== board.id && m.slug === slug)) continue;
+                const remoteSha = snapshot.files.get(boardPath(slug));
+                const folderUsed = [...snapshot.files.keys()].some(p => p.startsWith(`${BOARDS_ROOT}/${slug}/`));
+                if (!folderUsed) return slug;
+                if (remoteSha) {
+                    const remote = await fetchRemoteBoard(remoteSha);
+                    if (remote && remote.id === board.id) return slug;
+                }
+            }
+        }
+
+        function remoteChangedSinceSync(board, slug, snapshot) {
+            const remoteSha = snapshot.files.get(boardPath(slug));
+            if (!remoteSha) return false;
+            const meta = getBoardSyncMeta(board.id);
+            return !meta || remoteSha !== meta.sha;
+        }
+
+        function setSyncStatus(text) {
+            const el = document.getElementById('githubSyncStatus');
+            if (el) el.textContent = text || '';
+        }
+
+        async function runGitHubOperation(label, fn) {
+            if (!isGitHubConnected()) {
+                showToast('Connect to GitHub first', 'error');
+                return null;
+            }
+            if (githubState.busy) {
+                showToast('A GitHub sync is already in progress', 'info');
+                return null;
+            }
+
+            githubState.busy = true;
+            document.querySelectorAll('.gh-sync-btn').forEach(b => b.disabled = true);
+            document.getElementById('githubBtn').classList.add('opacity-60');
+            setSyncStatus(`${label}...`);
+
+            try {
+                return await fn();
+            } catch (err) {
+                let message = err.message;
+                if (err.status === 403) {
+                    message += `. Make sure your token can access ${githubState.owner}/${githubState.repo} with "Contents: Read and write" permission`;
+                }
+                showToast(escapeHtml(`GitHub ${label.toLowerCase()} failed: ${message}`), 'error');
+                setSyncStatus(`${label} failed: ${message}`);
+                return null;
+            } finally {
+                githubState.busy = false;
+                document.querySelectorAll('.gh-sync-btn').forEach(b => b.disabled = false);
+                document.getElementById('githubBtn').classList.remove('opacity-60');
+                saveGitHubSync();
+                updateSyncIndicators();
+            }
+        }
+
+        // Pushes the given boards in one commit. Boards whose ids are in `force` overwrite GitHub without prompting.
+        async function pushBoardsCore(boards, snapshot, force = new Set()) {
+            const reserved = new Set();
+            const plan = [];
+            for (const board of boards) {
+                const slug = await resolveSlugForPush(board, snapshot, reserved);
+                reserved.add(slug);
+                plan.push({ board, slug });
+            }
+
+            const conflicts = plan.filter(p => !force.has(p.board.id) && remoteChangedSinceSync(p.board, p.slug, snapshot));
+            let toPush = plan;
+
+            if (conflicts.length) {
+                const names = conflicts.map(p => `• ${p.board.title} (${BOARDS_ROOT}/${p.slug})`).join('\n');
+                const overwrite = confirm(`These boards were changed on GitHub since your last sync:\n\n${names}\n\nOK = overwrite GitHub with your local version\nCancel = skip them (use Pull to get the GitHub version)`);
+                if (!overwrite) {
+                    conflicts.forEach(p => markBoardConflict(p.board));
+                    toPush = plan.filter(p => !conflicts.includes(p));
+                }
+            }
+
+            if (!toPush.length) return 0;
+
+            const entries = toPush.map(p => ({ path: boardPath(p.slug), mode: '100644', type: 'blob', content: serializeBoard(p.board, p.slug) }));
+            const message = toPush.length === 1
+                ? `Update board ${toPush[0].slug} from BoardCraft`
+                : `Sync ${toPush.length} boards from BoardCraft`;
+            const files = await commitTreeEntries(snapshot, entries, message);
+
+            toPush.forEach(p => markBoardSynced(p.board, p.slug, files.get(boardPath(p.slug))));
+            return toPush.length;
+        }
+
+        // mode 'pull': conflicts keep local and get flagged. mode 'sync': conflicts kept locally are returned for force-push.
+        async function pullBoardsCore(snapshot, mode = 'pull') {
+            const remote = listRemoteBoards(snapshot.files);
+            const keepLocal = new Set();
+            const previousBoards = JSON.parse(JSON.stringify(state.boards));
+            let added = 0, updated = 0, conflicts = 0, invalid = 0;
+
+            for (const [slug, sha] of remote) {
+                let local = state.boards.find(b => { const m = getBoardSyncMeta(b.id); return m && m.slug === slug; });
+                const localMeta = local ? getBoardSyncMeta(local.id) : null;
+                if (local && localMeta.sha === sha && !localMeta.conflict) continue;
+
+                setSyncStatus(`Downloading ${BOARDS_ROOT}/${slug}...`);
+                const data = await fetchRemoteBoard(sha);
+                if (!data) { invalid++; continue; }
+
+                // A board that was never synced here can still be the same board (e.g. pushed from another device).
+                if (!local && data.id) {
+                    local = state.boards.find(b => b.id === data.id && !(getBoardSyncMeta(b.id) || {}).slug);
+                }
+
+                const remoteHash = boardHash(data);
+                if (local && isBoardDirty(local) && boardHash(local) !== remoteHash) {
+                    const useRemote = confirm(mode === 'sync'
+                        ? `"${local.title}" changed both locally and on GitHub.\n\nOK = use the GitHub version (discard local changes)\nCancel = keep your local version (it will overwrite GitHub)`
+                        : `"${local.title}" has local changes, and GitHub has a different version.\n\nOK = replace local with the GitHub version\nCancel = keep local (marked as conflict)`);
+                    if (!useRemote) {
+                        if (mode === 'sync') {
+                            githubSync.boards[local.id] = { ...(getBoardSyncMeta(local.id) || {}), slug };
+                            keepLocal.add(local.id);
+                        } else {
+                            markBoardConflict(local);
+                            conflicts++;
+                        }
+                        continue;
+                    }
+                }
+
+                if (!local) {
+                    const idTaken = !data.id || state.boards.some(b => b.id === data.id);
+                    local = {
+                        id: idTaken ? 'board-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : data.id,
+                        title: '',
+                        accentColor: '#0071E3',
+                        history: [],
+                        columns: []
+                    };
+                    state.boards.push(local);
+                    added++;
+                } else {
+                    updated++;
+                }
+
+                local.title = (typeof data.title === 'string' && data.title.trim()) ? data.title.trim() : slug;
+                local.accentColor = typeof data.accentColor === 'string' ? data.accentColor : (local.accentColor || '#0071E3');
+                local.columns = data.columns;
+                if (Array.isArray(data.history)) local.history = data.history;
+                markBoardSynced(local, slug, sha);
+            }
+
+            if (added || updated) {
+                recordUndoAction('Pull from GitHub', () => {
+                    state.boards = previousBoards;
+                    if (!state.boards.find(b => b.id === state.activeBoardId)) state.activeBoardId = state.boards[0].id;
+                    persistState();
+                });
+                persistState();
+                renderApp();
+            }
+
+            return { added, updated, conflicts, invalid, keepLocal };
+        }
+
+        function pullSummary({ added, updated, conflicts, invalid }) {
+            let msg = `${added} new, ${updated} updated`;
+            if (conflicts) msg += `, ${conflicts} conflict${conflicts === 1 ? '' : 's'}`;
+            if (invalid) msg += `, ${invalid} unreadable`;
+            return msg;
+        }
+
+        async function pushBoards(boards, emptyMessage) {
+            return runGitHubOperation('Push', async () => {
+                if (!boards.length) {
+                    setSyncStatus(emptyMessage);
+                    showToast(emptyMessage, 'info');
+                    return 0;
+                }
+                const snapshot = await getRemoteSnapshot();
+                const pushed = await pushBoardsCore(boards, snapshot);
+                const skipped = boards.length - pushed;
+                const msg = `Pushed ${pushed} board${pushed === 1 ? '' : 's'}` + (skipped ? `, skipped ${skipped}` : '');
+                setSyncStatus(msg);
+                showToast(msg, pushed ? 'success' : 'info');
+                return pushed;
+            });
+        }
+
+        function pushCurrentBoard() {
+            const board = getActiveBoard();
+            if (board) pushBoards([board]);
+        }
+
+        function pushAllBoards() {
+            pushBoards(state.boards.filter(isBoardDirty), 'All boards are already up to date on GitHub');
+        }
+
+        async function pullBoards() {
+            return runGitHubOperation('Pull', async () => {
+                const snapshot = await getRemoteSnapshot();
+                const result = await pullBoardsCore(snapshot, 'pull');
+                const msg = `Pulled: ${pullSummary(result)}`;
+                setSyncStatus(msg);
+                showToast(msg, result.conflicts || result.invalid ? 'error' : 'success');
+            });
+        }
+
+        async function syncAllBoards() {
+            return runGitHubOperation('Sync', async () => {
+                const snapshot = await getRemoteSnapshot();
+                const result = await pullBoardsCore(snapshot, 'sync');
+                const toPush = state.boards.filter(b => isBoardDirty(b) || result.keepLocal.has(b.id));
+                setSyncStatus(`Pushing ${toPush.length} board${toPush.length === 1 ? '' : 's'}...`);
+                const pushed = toPush.length ? await pushBoardsCore(toPush, snapshot, result.keepLocal) : 0;
+                const msg = `Sync complete: ${pullSummary(result)} from GitHub, ${pushed} pushed`;
+                setSyncStatus(msg);
+                showToast(msg, result.invalid ? 'error' : 'success');
+            });
+        }
+
+        async function renameRemoteFolder() {
+            const board = getActiveBoard();
+            if (!board) return;
+            const meta = getBoardSyncMeta(board.id);
+
+            if (!meta || !meta.sha) {
+                showToast(`Folder will be named after "${escapeHtml(board.title)}" on first push`, 'info');
+                return;
+            }
+
+            return runGitHubOperation('Rename', async () => {
+                const snapshot = await getRemoteSnapshot();
+                const oldSlug = meta.slug;
+                const base = slugify(board.title);
+                if (base === oldSlug) {
+                    setSyncStatus(`Folder already matches: ${BOARDS_ROOT}/${oldSlug}`);
+                    return;
+                }
+                let newSlug = base;
+                for (let n = 2; [...snapshot.files.keys()].some(p => p.startsWith(`${BOARDS_ROOT}/${newSlug}/`)) ||
+                    Object.entries(githubSync.boards).some(([id, m]) => id !== board.id && m.slug === newSlug); n++) {
+                    newSlug = `${base}-${n}`;
+                }
+                if (!confirm(`Move ${BOARDS_ROOT}/${oldSlug} to ${BOARDS_ROOT}/${newSlug} on GitHub?\n\nThe current local version will be written to the new folder.`)) {
+                    setSyncStatus('');
+                    return;
+                }
+
+                const deletions = [...snapshot.files.keys()]
+                    .filter(path => path.startsWith(`${BOARDS_ROOT}/${oldSlug}/`))
+                    .map(path => ({ path, mode: '100644', type: 'blob', sha: null }));
+                const entries = [...deletions, { path: boardPath(newSlug), mode: '100644', type: 'blob', content: serializeBoard(board, newSlug) }];
+                const files = await commitTreeEntries(snapshot, entries, `Rename board ${oldSlug} to ${newSlug} from BoardCraft`);
+                markBoardSynced(board, newSlug, files.get(boardPath(newSlug)));
+                setSyncStatus(`Moved to ${BOARDS_ROOT}/${newSlug}`);
+                showToast(`Moved to ${BOARDS_ROOT}/${escapeHtml(newSlug)}`);
+            });
+        }
+
+        function openGitHubModal() {
+            document.getElementById('githubTokenInput').value = githubState.token;
+            document.getElementById('githubOwnerInput').value = githubState.owner;
+            document.getElementById('githubRepoInput').value = githubState.repo;
+            document.getElementById('githubCreateRepoCheckbox').checked = githubState.createIfMissing;
+            document.getElementById('githubDisconnectBtn').classList.toggle('hidden', !isGitHubConnected());
+            document.getElementById('githubSyncSection').classList.toggle('hidden', !isGitHubConnected());
+            if (!githubState.busy) setSyncStatus('');
+            document.getElementById('githubModal').classList.remove('hidden');
+        }
+
+        function closeGitHubModal() {
+            document.getElementById('githubModal').classList.add('hidden');
+        }
+
+        async function connectGitHubFromModal() {
+            const token = document.getElementById('githubTokenInput').value.trim();
+            const owner = document.getElementById('githubOwnerInput').value.trim();
+            const repo = document.getElementById('githubRepoInput').value.trim();
+            const createIfMissing = document.getElementById('githubCreateRepoCheckbox').checked;
+
+            if (!token || !owner || !repo) {
+                showToast('GitHub token, owner, and repo are required', 'error');
+                return;
+            }
+
+            try {
+                await githubRequest('/user', {}, token);
+                githubState.token = token;
+                githubState.owner = owner;
+                githubState.repo = repo;
+                githubState.createIfMissing = createIfMissing;
+                saveGitHubConfig();
+                renderHeader();
+                openGitHubModal();
+                showToast('Connected to GitHub');
+            } catch (err) {
+                showToast(escapeHtml(`GitHub connection failed: ${err.message}`), 'error');
+            }
+        }
+
+        function disconnectGitHub() {
+            clearGitHubConfig();
+            closeGitHubModal();
+            renderHeader();
+            showToast('Disconnected from GitHub', 'info');
         }
 
         // Initialize on DOM Ready
